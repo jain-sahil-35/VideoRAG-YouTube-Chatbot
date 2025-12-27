@@ -38,7 +38,7 @@ Built with **Streamlit**, **LangChain**, **FAISS**, and **HuggingFace models**.
 
 ### 1️⃣ Clone the repository
 ```bash
-git clone https://github.com/your-username/youtube-rag-chatbot.git
+gh repo clone jain-sahil-35/VideoRAG-YouTube-Chatbot
 cd youtube-rag-chatbot
 ```
 
