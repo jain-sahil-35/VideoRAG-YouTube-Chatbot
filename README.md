@@ -30,7 +30,7 @@ Built with **Streamlit**, **LangChain**, **FAISS**, and **HuggingFace models**.
 
 ## 📸 Demo
 
-![UI Screenshot](screenshots/ui.png)
+![UI Screenshot](screenshots/ui_v2.png)
 
 ---
 
