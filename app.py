@@ -24,8 +24,6 @@ from langchain_core.runnables import (
 )
 from langchain_core.output_parsers import StrOutputParser
 
-
-# ---------------- SETUP ----------------
 load_dotenv()
 
 st.set_page_config(
@@ -37,8 +35,6 @@ st.set_page_config(
 st.title("🎥 YouTube Video Q&A")
 st.caption("Ask questions based **only** on the video's transcript")
 
-
-# ---------------- SESSION STATE ----------------
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
@@ -48,8 +44,6 @@ if "vector_store" not in st.session_state:
 if "current_video_id" not in st.session_state:
     st.session_state.current_video_id = None
 
-
-# ---------------- HELPERS ----------------
 def extract_video_id(url_or_id: str):
     patterns = [
         r"v=([0-9A-Za-z_-]{11})",
@@ -177,7 +171,8 @@ Question:
 
     llm = HuggingFaceEndpoint(
         repo_id="openai/gpt-oss-safeguard-20b",
-        task="text-generation"
+        task="text-generation",
+        max_new_tokens=2048
     )
 
     model = ChatHuggingFace(llm=llm)
