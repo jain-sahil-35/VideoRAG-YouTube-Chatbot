@@ -2,7 +2,7 @@
 
 A **Retrieval-Augmented Generation (RAG)** based chatbot that answers questions **strictly from a YouTube video's transcript**.
 
-Built with **Streamlit**, **LangChain**, **FAISS**, and **HuggingFace models**.
+Built with **Streamlit**, **LangChain**, **FAISS**, and **HuggingFace & Groq models**.
 
 ---
 
@@ -20,7 +20,7 @@ Built with **Streamlit**, **LangChain**, **FAISS**, and **HuggingFace models**.
 ## 🧱 Tech Stack
 
 - **Frontend**: Streamlit
-- **LLM**: HuggingFace Endpoint
+- **LLM**: HuggingFace Endpoint, Groq
 - **Embeddings**: Sentence Transformers
 - **Vector DB**: FAISS
 - **Framework**: LangChain
@@ -55,7 +55,7 @@ pip install -r requirements.txt
 
 ### 4️⃣ Set environment variables (Create a .env file)
 ```env
-HUGGINGFACEHUB_API_TOKEN=your_api_key_here
+GROQ_API_KEY=your_api_key_here
 ```
 
 ### 5️⃣ Run the app
