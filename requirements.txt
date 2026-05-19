@@ -7,3 +7,5 @@ langchain-core
 langchain-huggingface
 sentence-transformers
 faiss-cpu
+yt-dlp
+langchain-groq

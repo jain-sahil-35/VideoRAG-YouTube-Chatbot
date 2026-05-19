@@ -10,11 +10,8 @@ from youtube_transcript_api import (
 )
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import (
-    ChatHuggingFace,
-    HuggingFaceEmbeddings,
-    HuggingFaceEndpoint
-)
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_groq import ChatGroq
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import (
@@ -61,12 +58,67 @@ def extract_video_id(url_or_id: str):
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
 
+@st.cache_data(show_spinner=False)
+def fetch_transcript(video_id):
+    return YouTubeTranscriptApi().fetch(
+        video_id,
+        languages=["en"]
+    )
 
 @st.cache_resource(show_spinner=False)
 def build_vector_store(video_id: str):
+
     try:
-        transcript_list = YouTubeTranscriptApi().fetch(video_id, languages=["en"])
-        transcript = " ".join(chunk.text for chunk in transcript_list)
+        transcript_data = fetch_transcript(video_id)
+
+        transcript = " ".join(
+            [chunk.text for chunk in transcript_data]
+        )
+
+    except VideoUnavailable:
+        return None, "❌ Video unavailable."
+
+    except TranscriptsDisabled:
+        return None, "❌ Transcripts are disabled for this video."
+
+    except NoTranscriptFound:
+        return None, "❌ No English transcript found."
+
+    except Exception as e:
+        return None, f"""
+❌ Failed to fetch transcript.
+
+Possible reasons:
+- YouTube blocked requests
+- Too many requests
+- Video restrictions
+- No subtitles available
+
+Technical Error:
+{str(e)}
+"""
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200
+    )
+
+    chunks = splitter.create_documents([transcript])
+
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
+
+    vector_store = FAISS.from_documents(
+        chunks,
+        embeddings
+    )
+
+    return vector_store, None
+
+    try:
+        transcript_data = YouTubeTranscriptApi.get_transcript(video_id, languages=["en"])
+        transcript = " ".join(chunk.text for chunk in transcript_data)
 
     except VideoUnavailable:
         return None, "Video unavailable."
@@ -111,7 +163,7 @@ with st.sidebar:
         if not video_id:
             st.error("Invalid YouTube URL")
         else:
-            with st.spinner("Fetching transcript..."):
+            with st.spinner("Loading transcript and building embeddings..."):
                 vector_store, error = build_vector_store(video_id)
 
                 if error:
@@ -151,14 +203,18 @@ if question:
     # RAG PIPELINE
     retriever = st.session_state.vector_store.as_retriever(
         search_type="similarity",
-        search_kwargs={"k": 4}
+        search_kwargs={"k": 6}
     )
 
     prompt = PromptTemplate(
         template="""
 You are a helpful assistant.
+
 Answer ONLY from the provided transcript context.
-If the context is insufficient, answer in a well structured manner.
+
+If the answer is not present in the transcript,
+say:
+"I could not find this in the video transcript."
 
 Context:
 {context}
@@ -169,20 +225,18 @@ Question:
         input_variables=["context", "question"]
     )
 
-    llm = HuggingFaceEndpoint(
-        repo_id="openai/gpt-oss-safeguard-20b",
-        task="text-generation",
-        max_new_tokens=2048
-    )
+    llm = ChatGroq(
+    model_name="llama-3.1-8b-instant",
+    temperature=0.3
+)
 
-    model = ChatHuggingFace(llm=llm)
     parser = StrOutputParser()
 
     chain = (
         RunnableParallel({
             "context": retriever | RunnableLambda(format_docs),
             "question": RunnablePassthrough()
-        }) | prompt | model | parser
+        }) | prompt | llm | parser
     )
 
     with st.chat_message("assistant"):
